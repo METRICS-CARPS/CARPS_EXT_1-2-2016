@@ -1,0 +1,241 @@
+---
+title: "CARPS Reproducibility Report"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+# Report Details
+
+
+```{r}
+articleID <- "1-2-2016" # insert the article ID code here e.g., "10-3-2015_PS"
+reportType <- "pilot" # specify whether this is the 'pilot' report or 'final' report
+pilotNames <- "Daphna Spivack" # insert the pilot's name here e.g., "Tom Hardwicke".  If there are multiple cpilots enter both names in a character string e.g., "Tom Hardwicke, Bob Dylan"
+copilotNames <- "Zainab Hosseini" # insert the co-pilot's name here e.g., "Michael Frank". If there are multiple co-pilots enter both names in a character string e.g., "Tom Hardwicke, Bob Dylan"
+pilotTTC <- 600 # insert the pilot's estimated time to complete (in minutes, fine to approximate) e.g., 120
+copilotTTC <- NA # insert the co-pilot's estimated time to complete (in minutes, fine to approximate) e.g., 120
+pilotStartDate <- "11/3/2018" # insert the pilot's start date in US format e.g., as.Date("01/25/18", format = "%m/%d/%y")
+copilotStartDate <- NA # insert the co-pilot's start date in US format e.g., as.Date("01/25/18", format = "%m/%d/%y")
+completionDate <-"10/4/2018" # copilot insert the date of final report completion (after any necessary rounds of author assistance) in US format e.g., as.Date("01/25/18", format = "%m/%d/%y")
+```
+
+------
+
+#### Methods summary: 
+
+239 participants on Amazon's Mechanical Turk took this study. The study was conduced in October 2012, a month before the 2012 presidential election. Thirteen additional participants were excluded from the study becuase they failed the attention check or did not accurately finish the study. First, participants had to quickly and correctly identify five pictures of both Mitt Romney and Barack Obama, shown ten times each for a total of 100 trials.
+
+Participants were randomly assigned to catogarize the photos using keys on either the left or the right hand side of the keyboard (either metaphorically compatible or incompatible with the candidate's ideology). In the compatible condition, 122 participants were randomly assigned to use thier left hand (by pressing the "Q" key) to identify a photo as Barack Obama, and their right hand (by pressing the "P key") to identify a photo as Mitt Romney. The 117 participants in the incompatible conditions had the opposite task. 
+
+Additionally, to measure the participants' perceptions of the cadidate's ideology, participants identified the (1) social, (2) economic, and (3) general ideologies of the candidates on a 1 to 9 scale (1=extremely liberal, 5=moderate, 9=extremely conservative). The order in which these candidate assesments were conducted was counterbalanced. By combining the three ratings, the authors created a single ideology score for each candidate  (α = .89 and α = .82 for Obama and Romney, respectively).
+
+Next, the participants assesed their perceptions of Obama and Romney's stances on 10 specific political issues on a scale from 1 to 7 (1 = the candidate completely
+disagrees, 7 = the candidate completely agrees). The 10 issues were taken from Carter, Ferguson, and Hassin (2011). The author's created a composite score of the 10 issues for Obama and Romney (α = .73 and α = .81 for Obama and Romney, respectively).
+
+The authors then calulated their dependent variable: the perceived difference between the candidates’ beliefs. They did this by substracting Obama's scores for both general ideologies and specific beliefs from Romney's scores. The higher the numbers, the further apart the perception of Obama’s and Romney’s attitudes.
+
+------
+
+#### Target outcomes: 
+
+"An independent-samples t test with compatibility condition
+(compatible vs. incompatible) as the independent
+variable and the perceived difference between
+Romney’s and Obama’s general ideologies as the dependent variable showed a significant difference between conditions. Specifically, participants in the incompatible condition perceived the difference between the candidates’ ideologies as smaller than did participants in the compatible condition, t(237) = 2.06, p = .04, d = 0.27, 95% confidence interval (CI) for the mean difference = [0.02, 1.08] (see Table 1 for means and standard deviations).4 Additionally, participants in the incompatible condition perceived the difference between the candidates’ stances on specific political issues as smaller than did participants in the compatible condition, t(237) = 2.38, p = .02, d = 0.31, 95% CI for the mean difference = [0.08, 0.82] (see Table 1)"
+------
+
+```{r global_options, include=FALSE}
+# sets up some formatting options for the R Markdown document
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+# Step 1: Load packages and prepare report object
+
+
+```{r}
+# load packages
+library(tidyverse) # for data munging
+library(knitr) # for kable table formating
+library(haven) # import and export 'SPSS', 'Stata' and 'SAS' Files
+library(readxl) # import excel files
+library(CARPSreports) # custom report functions
+```
+
+[PILOT/COPILOT DO NOT MAKE CHANGES TO THE CODE CHUNK BELOW]
+
+```{r}
+# Prepare report object. This will be updated automatically by the reproCheck function each time values are compared
+reportObject <- data.frame(dummyRow = TRUE, reportedValue = NA, obtainedValue = NA, valueType = NA, percentageError = NA, comparisonOutcome = NA, eyeballCheck = NA)
+```
+
+# Step 2: Load data
+
+```{r}
+library(haven)
+Kleiman_et_al_Study_1_ <- read_sav("data/Kleiman et al. (Study 1).sav")
+```
+
+# Step 3: Tidy data
+
+
+```{r}
+kleimantidy = Kleiman_et_al_Study_1_ %>%
+  filter(Check_pass==1, Categorize_correct>85) %>%
+  mutate(Pnum = as.numeric(Pnum)) %>%
+  gather(Question, Response, 3:151) %>%
+  mutate(OIdeology = str_extract(Question, "O_ideology|O_economic|O_social")) %>%
+  mutate(RIdeology = str_extract(Question, "R_ideology|R_economic|R_social")) %>%
+  mutate(OSpecific_Issue = str_extract(Question, "O_environment|O_abortion_reverse|O_interrogate|O_immigration|O_marriage_reverse|O_Iran|O_affirmative_action_reverse|O_guns_reverse|O_deathpen|O_stem_cells_reverse|")) %>%
+  mutate(RSpecific_Issue = str_extract(Question, "R_environment|R_abortion_reverse|R_interrogation|R_immigration|R_marriage_reverse|R_Iran|R_affirmative_action_reverse|R_guns_reverse|R_deathpen|R_stem_cells_reverse")) 
+
+#Creating a Data set for only OIdeology 
+OIdeology_kleimantidy = kleimantidy %>%
+  select(c("Pnum", "Condition", "Response", "OIdeology")) %>%
+  filter(!is.na(OIdeology))
+
+#Creating a Data set for only RIdeology 
+RIdeology_kleimantidy = kleimantidy %>%
+  select(c("Pnum", "Condition", "Response", "RIdeology")) %>%
+  filter(!is.na(RIdeology))
+
+#Creating a Data set for only RIssue
+RSpecificIssue_kleimantidy = kleimantidy %>%
+  select(c("Pnum", "Condition", "Response", "RSpecific_Issue")) %>%
+  filter(!is.na(RSpecific_Issue))
+
+#Creating a Data set for only OIssue *PROBLEM HERE*  
+OSpecificIssue_kleimantidy = kleimantidy %>%
+  select(c("Pnum", "Condition", "Response", "OSpecific_Issue"))
+
+OSpecificIssue_kleimantidy <- subset(OSpecificIssue_kleimantidy, OSpecific_Issue != "")
+
+```
+
+# Step 4: Run analysis
+
+## Pre-processing
+
+
+```{r}
+#Need to create Romney and Obama Ideology composites by taking the means of the three ideology questions for each particpant. 
+  
+Kcomposite_OIdeology = OIdeology_kleimantidy %>%
+group_by(Pnum, Condition) %>%
+  # What we want is the mean response.
+  summarise(OIdeology_composite = (mean(Response)))
+
+Kcomposite_RIdeology = RIdeology_kleimantidy %>%
+group_by(Pnum, Condition) %>%
+  # What we want is the mean response.
+  summarise(RIdeology_composite = (mean(Response)))
+
+#combining the two ideology means:
+ideologycomposite <- merge(Kcomposite_RIdeology, Kcomposite_OIdeology) %>%
+  mutate(delta_ideology = RIdeology_composite - OIdeology_composite)
+
+#Need to create Romney and Obama specific issues composite by taking the mean of the 10 issues for each participant 
+
+Kcomposite_OSpecificIssue = OSpecificIssue_kleimantidy %>%
+group_by(Pnum, Condition) %>%
+  # What we want is the mean response.
+  summarise(OSpecificIssue_composite = (mean(Response)))
+
+Kcomposite_RSpecificIssue = RSpecificIssue_kleimantidy %>%
+group_by(Pnum, Condition) %>%
+  # What we want is the mean response.
+  summarise(RSpecificIssue_composite = (mean(Response)))
+
+#combining the two issue means:
+SpecificIssuecomposite <- merge(Kcomposite_RSpecificIssue, Kcomposite_OSpecificIssue) %>%
+  mutate(delta_SpecificIssue = RSpecificIssue_composite - OSpecificIssue_composite)
+```
+
+## Descriptive statistics
+
+```{r}
+#t.test for Ideology Means 
+  t.test(delta_ideology ~ Condition, 
+       data = ideologycomposite) 
+
+#t.test for Issue Means  
+t.test(delta_SpecificIssue ~ Condition, 
+       data = SpecificIssuecomposite) 
+
+```
+
+## Inferential statistics
+
+```{r}
+```
+
+# Step 5: Conclusion
+
+I was able to reproduce both the t-test between the two idealogy difference means and issue difference means. My results alligned with the authors' findings. The only error was a rounding error: the authors found a t value of 2.38 for the specific issues t.test when it should have been 2.37. 
+
+
+```{r}
+Author_Assistance = FALSE # was author assistance provided? (if so, enter TRUE)
+
+Insufficient_Information_Errors <- 0 # how many discrete insufficient information issues did you encounter?
+
+# Assess the causal locus (discrete reproducibility issues) of any reproducibility errors. Note that there doesn't necessarily have to be a one-to-one correspondance between discrete reproducibility issues and reproducibility errors. For example, it could be that the original article neglects to mention that a Greenhouse-Geisser correct was applied to ANOVA outcomes. This might result in multiple reproducibility errors, but there is a single causal locus (discrete reproducibility issue).
+
+locus_typo <- NA # how many discrete issues did you encounter that related to typographical errors?
+locus_specification <- NA # how many discrete issues did you encounter that related to incomplete, incorrect, or unclear specification of the original analyses?
+locus_analysis <- NA # how many discrete issues did you encounter that related to errors in the authors' original analyses?
+locus_data <- NA # how many discrete issues did you encounter that related to errors in the data files shared by the authors?
+locus_unidentified <- NA # how many discrete issues were there for which you could not identify the cause
+
+# How many of the above issues were resolved through author assistance?
+locus_typo_resolved <- NA # how many discrete issues did you encounter that related to typographical errors?
+locus_specification_resolved <- NA # how many discrete issues did you encounter that related to incomplete, incorrect, or unclear specification of the original analyses?
+locus_analysis_resolved <- NA # how many discrete issues did you encounter that related to errors in the authors' original analyses?
+locus_data_resolved <- NA # how many discrete issues did you encounter that related to errors in the data files shared by the authors?
+locus_unidentified_resolved <- NA # how many discrete issues were there for which you could not identify the cause
+
+Affects_Conclusion <- NA # Do any reproducibility issues encounter appear to affect the conclusions made in the original article? TRUE, FALSE, or NA. This is a subjective judgement, but you should taking into account multiple factors, such as the presence/absence of decision errors, the number of target outcomes that could not be reproduced, the type of outcomes that could or could not be reproduced, the difference in magnitude of effect sizes, and the predictions of the specific hypothesis under scrutiny.
+```
+
+
+```{r}
+reportObject <- reportObject %>%
+  filter(dummyRow == FALSE) %>% # remove the dummy row
+  select(-dummyRow) %>% # remove dummy row designation
+  mutate(articleID = articleID) %>% # add variables to report 
+  select(articleID, everything()) # make articleID first column
+
+# decide on final outcome
+if(any(reportObject$comparisonOutcome %in% c("MAJOR_ERROR", "DECISION_ERROR")) | Insufficient_Information_Errors > 0){
+  finalOutcome <- "Failure without author assistance"
+  if(Author_Assistance == T){
+    finalOutcome <- "Failure despite author assistance"
+  }
+}else{
+  finalOutcome <- "Success without author assistance"
+  if(Author_Assistance == T){
+    finalOutcome <- "Success with author assistance"
+  }
+}
+
+# collate report extra details
+reportExtras <- data.frame(articleID, pilotNames, copilotNames, pilotTTC, copilotTTC, pilotStartDate, copilotStartDate, completionDate, Author_Assistance, finalOutcome, Insufficient_Information_Errors, locus_typo, locus_specification, locus_analysis, locus_data, locus_unidentified, locus_typo_resolved, locus_specification_resolved, locus_analysis_resolved, locus_data_resolved, locus_unidentified_resolved)
+
+# save report objects
+if(reportType == "pilot"){
+  write_csv(reportObject, "pilotReportDetailed.csv")
+  write_csv(reportExtras, "pilotReportExtras.csv")
+}
+
+if(reportType == "final"){
+  write_csv(reportObject, "finalReportDetailed.csv")
+  write_csv(reportExtras, "finalReportExtras.csv")
+}
+```
+
+# Session information
+
+```{r session_info, include=TRUE, echo=TRUE, results='markup'}
+devtools::session_info()
+```
